@@ -1,0 +1,31 @@
+# Vercel upload excludes. The web build (root directory: web) imports the
+# library TypeScript source from ../src, so src/ is KEPT. Everything below is
+# not needed to build or run the demo and is excluded from the upload.
+
+# Dependencies and build output (reinstalled/rebuilt by Vercel)
+node_modules
+web/node_modules
+dist
+web/.next
+web/out
+.vercel
+web/.vercel
+
+# Spec/docs sources — not needed at build time
+.kiro
+docs
+
+# Tests and configs irrelevant to the production web build
+tests
+**/*.test.ts
+coverage
+
+# Version control / local
+.git
+.gitignore
+*.log
+.DS_Store
+
+# Never upload secrets (none exist in-repo; defensive)
+.env
+.env.*
