@@ -13,6 +13,16 @@ No UI. No network. No third-party simulation framework. One runtime dependency
 > level and carries a notice to that effect. It is **not** a forecast for any
 > specific patient and must not be used as one.
 
+## Status and provenance
+
+- **v0.1 research prototype.** Effect sizes come from the published sources
+  cited in [`docs/evidence.md`](docs/evidence.md), but have **not** been
+  independently verified against the original papers.
+- Cohort-level estimates only; not a prediction for an individual patient; not
+  a medical device; for clinician decision support only.
+- Code was generated with Kiro (Specs under `.kiro/specs`); design and evidence
+  review by the author.
+
 ## What it does
 
 - Models two organs in v0.1: **heart** (LV mass index, LV wall thickness,
