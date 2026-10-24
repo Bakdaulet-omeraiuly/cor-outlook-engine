@@ -1,6 +1,6 @@
 # Diagnosis engine (from COR Heart Studio)
 
-Owner: @HyorinmaruK. This folder holds the **guideline-based diagnosis engine**, its tests and its case set, as built
+Owners: @HyorinmaruK (diagnosis engine) and @kerimku1 (assistant chat). This folder holds the **guideline-based diagnosis engine**, its tests and its case set, plus the **assistant chat** that explains it, as built
 and deployed in [Bakdaulet-omeraiuly/cor-heart-studio](https://github.com/Bakdaulet-omeraiuly/cor-heart-studio). It
 sits next to `cor-outlook-engine` because the two are complementary:
 
@@ -25,8 +25,11 @@ Paths mirror `cor-heart-studio`, so the folder can be dropped back into that rep
 | `docs/research/diagnosis-engine.md` | criteria with DOIs, conflict handling, differential logic, verification pass |
 | `.kiro/` | steering and hooks used while building it in COR Heart Studio |
 | `KIRO.md` | how Kiro was used (hackathon write-up) |
+| `src/app/api/assistant/`, `src/components/assistant/` | **assistant chat** by @kerimku1: Claude explains the `Assessment`; a number and citation guard checks every reply |
+| `tests/unit/assistant/`, `tests/e2e/assistant.spec.ts`, `scripts/eval-assistant.ts` | chat tests and the evaluation script (engine + Claude vs Claude alone) |
+| `docs/research/assistant-chat.md` | chat research and evaluation results |
 
-The Kiro spec is at the repository root in [`/.kiro/specs/diagnosis-engine/`](../../.kiro/specs/diagnosis-engine/).
+The Kiro specs are at the repository root: [`/.kiro/specs/diagnosis-engine/`](../../.kiro/specs/diagnosis-engine/) (@HyorinmaruK) and [`/.kiro/specs/assistant-chat/`](../../.kiro/specs/assistant-chat/) (@kerimku1).
 Its file paths are relative to this folder.
 
 ## Running it
