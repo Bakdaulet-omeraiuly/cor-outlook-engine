@@ -1,48 +1,64 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { simulate, COHORT_NOTICE, ENGINE_VERSION, type OrganId, type Contract } from "@engine";
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import { COHORT_NOTICE, ENGINE_VERSION, type OrganId } from "@engine";
 import {
   ORGANS,
   buttonsByKind,
-  parameterLabels,
-  SYNTHETIC_BASELINES,
-  DEMO_SEED,
-  DEMO_ITERATIONS,
   type ButtonView,
 } from "./lib/wiring";
+import {
+  computeTrajectory,
+  parseSuggested,
+  HORIZON_YEARS,
+} from "./lib/trajectoryView";
+import { ParameterTable } from "./components/ParameterTable";
+import { AorticStenosisCard } from "./components/AorticStenosisCard";
+import type { ViewMode } from "./scene/Viewer3D";
+
+// The 3D canvas is client-only; never server-render it (static export safe).
+const Viewer3D = dynamic(() => import("./scene/Viewer3D").then((m) => m.Viewer3D), {
+  ssr: false,
+  loading: () => <div className="viewer-loading" aria-hidden="true" />,
+});
+
+type Selection = OrganId | "aortic_stenosis";
 
 export default function Page() {
-  const [organ, setOrgan] = useState<OrganId>("heart");
-  // Selected intervention ids per organ, so switching organs keeps each set.
-  const [selected, setSelected] = useState<Record<OrganId, string[]>>({
+  const [selection, setSelection] = useState<Selection>("heart");
+  const [selectedByOrgan, setSelectedByOrgan] = useState<Record<OrganId, string[]>>({
     heart: [],
     brain: [],
   });
+  const [year, setYear] = useState(HORIZON_YEARS);
+  const [viewMode, setViewMode] = useState<ViewMode>("side-by-side");
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [suggested, setSuggested] = useState<string[]>([]);
+  const [showAttrib, setShowAttrib] = useState(false);
 
-  const groups = useMemo(() => buttonsByKind(organ), [organ]);
-  const labels = useMemo(() => parameterLabels(organ), [organ]);
-  const baseline = SYNTHETIC_BASELINES[organ];
-  const activeIds = selected[organ];
+  useEffect(() => {
+    setSuggested(parseSuggested(window.location.search));
+  }, []);
 
-  // Cumulative, order-independent: simulate() de-dupes and sorts internally.
-  const contract: Contract = useMemo(
-    () =>
-      simulate({
-        organ,
-        baseline,
-        interventions: activeIds,
-        seed: DEMO_SEED,
-        iterations: DEMO_ITERATIONS,
-      }),
-    [organ, baseline, activeIds],
+  const isOrgan = selection === "heart" || selection === "brain";
+  const organ = (isOrgan ? selection : "heart") as OrganId;
+  const activeIds = selectedByOrgan[organ];
+  const groups = useMemo(() => (isOrgan ? buttonsByKind(organ) : null), [isOrgan, organ]);
+  const res = useMemo(
+    () => (isOrgan ? computeTrajectory(organ, activeIds) : null),
+    [isOrgan, organ, activeIds],
   );
+  const contributorLabels = useMemo(() => {
+    const m: Record<string, string> = {};
+    if (res) for (const a of res.appliedInterventions) m[a.id] = a.label;
+    return m;
+  }, [res]);
 
   function toggle(id: string, disabled: boolean) {
     if (disabled) return;
-    setSelected((prev) => {
+    setSelectedByOrgan((prev) => {
       const cur = prev[organ];
       const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
       return { ...prev, [organ]: next };
@@ -53,20 +69,32 @@ export default function Page() {
     <div className="wrap">
       <header className="app">
         <div>
-          <h1>COR Outlook — cohort-level organ outlook</h1>
+          <h1>COR Outlook — 3D treatment scenarios</h1>
           <div className="sub">
-            Demo of <code>cor-outlook-engine</code> v{ENGINE_VERSION}. Toggle
-            interventions to see modeled cohort-level parameter changes.
+            Toggle interventions and see the organ in {HORIZON_YEARS} years, with
+            vs without treatment. Engine v{ENGINE_VERSION}. Cohort-level.
           </div>
         </div>
-        <OrganSwitch organ={organ} onChange={setOrgan} />
+        <nav className="organ-switch" role="group" aria-label="Select view">
+          {ORGANS.map((o) => (
+            <button key={o.id} aria-pressed={selection === o.id} onClick={() => setSelection(o.id)}>
+              {o.label}
+            </button>
+          ))}
+          <button
+            aria-pressed={selection === "aortic_stenosis"}
+            onClick={() => setSelection("aortic_stenosis")}
+          >
+            Aortic stenosis
+          </button>
+        </nav>
       </header>
 
       <div className="notice" role="note">
         <strong>Important</strong>
         <span>
-          Cohort-level estimate — not a prediction for an individual patient,
-          not a medical device, clinician decision support only.
+          Cohort-level estimate — not a prediction for an individual patient, not
+          a medical device, clinician decision support only.
         </span>
         <button
           className="info-btn"
@@ -83,97 +111,124 @@ export default function Page() {
         </div>
       )}
 
-      <div className="layout">
-        {/* LEFT: interventions */}
-        <section className="panel" aria-label="Interventions">
-          <h2>Interventions</h2>
-          <p className="hint">
-            Click to toggle. Results update cumulatively and are
-            order-independent. Items with no sourced effect for the selected
-            organ are disabled.
-          </p>
+      {selection === "aortic_stenosis" ? (
+        <div className="layout-as">
+          <AorticStenosisCard />
+        </div>
+      ) : (
+        <div className="layout">
+          {/* LEFT: interventions + controls */}
+          <section className="panel" aria-label="Interventions and controls">
+            <h2>Interventions</h2>
+            <p className="hint">
+              Cumulative and order-independent. Items with no sourced effect for
+              the {organ} are disabled. Highlighted = suggested.
+            </p>
 
-          <ToggleGroup
-            title="Drugs"
-            buttons={groups.drugs}
-            activeIds={activeIds}
-            openInfo={openInfo}
-            onToggle={toggle}
-            onInfo={(id) => setOpenInfo((cur) => (cur === id ? null : id))}
-          />
-          <ToggleGroup
-            title="Lifestyle"
-            buttons={groups.lifestyle}
-            activeIds={activeIds}
-            openInfo={openInfo}
-            onToggle={toggle}
-            onInfo={(id) => setOpenInfo((cur) => (cur === id ? null : id))}
-          />
+            {groups && (
+              <>
+                <ToggleGroup
+                  title="Drugs"
+                  buttons={groups.drugs}
+                  activeIds={activeIds}
+                  suggested={suggested}
+                  openInfo={openInfo}
+                  onToggle={toggle}
+                  onInfo={(id) => setOpenInfo((c) => (c === id ? null : id))}
+                />
+                <ToggleGroup
+                  title="Lifestyle"
+                  buttons={groups.lifestyle}
+                  activeIds={activeIds}
+                  suggested={suggested}
+                  openInfo={openInfo}
+                  onToggle={toggle}
+                  onInfo={(id) => setOpenInfo((c) => (c === id ? null : id))}
+                />
+              </>
+            )}
 
-          <p className="synthetic">
-            Baseline is a <strong>SYNTHETIC example</strong> ({organ}), not a
-            real patient.
-          </p>
-        </section>
+            <div className="controls">
+              <label className="control">
+                <span>Year: {year}</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={HORIZON_YEARS}
+                  step={1}
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                  aria-label={`Outlook year, 0 to ${HORIZON_YEARS}`}
+                />
+              </label>
+              <div className="view-switch" role="group" aria-label="3D view mode">
+                <button
+                  aria-pressed={viewMode === "side-by-side"}
+                  onClick={() => setViewMode("side-by-side")}
+                >
+                  Side by side
+                </button>
+                <button aria-pressed={viewMode === "ghost"} onClick={() => setViewMode("ghost")}>
+                  Ghost overlay
+                </button>
+              </div>
+            </div>
 
-        {/* RIGHT: results */}
-        <section className="panel" aria-label="Results" aria-live="polite">
-          <h2>Projected parameters</h2>
-          <p className="hint">
-            Baseline → likely value, with the best/worst (2.5–97.5th percentile)
-            Monte Carlo range. Seed {DEMO_SEED}, {DEMO_ITERATIONS} iterations.
-          </p>
-          <div className="legend" aria-hidden="true">
-            <span>
-              <span className="sw" style={{ background: "#9fb0c0" }} /> baseline
-            </span>
-            <span>
-              <span className="sw" style={{ background: "#7ee2b8" }} /> likely
-            </span>
-            <span>
-              <span className="sw" style={{ background: "#24405c" }} /> range
-            </span>
-          </div>
+            <p className="synthetic">
+              Baseline is a <strong>SYNTHETIC example</strong> ({organ}), not a
+              real patient.
+            </p>
+            <button className="link-btn" aria-expanded={showAttrib} onClick={() => setShowAttrib((v) => !v)}>
+              Attributions
+            </button>
+            {showAttrib && <Attributions />}
+          </section>
 
-          {contract.parameters.map((p) => (
-            <ParameterRow
-              key={p.id}
-              p={p}
-              label={labels[p.id]?.label ?? p.id}
-              contributors={contributorsFor(contract, p.id)}
-            />
-          ))}
+          {/* MIDDLE: 3D */}
+          <section className="panel viewer-panel" aria-label="3D viewer">
+            {res && <Viewer3D organ={organ} res={res} year={year} viewMode={viewMode} />}
+            <p className="illustrative-note">
+              3D deformation is an <strong>illustrative</strong> rendering of the
+              cohort-level ratios, not a biomechanical or per-structure model.
+            </p>
+          </section>
 
-          <Warnings contract={contract} />
-        </section>
-      </div>
+          {/* RIGHT: table */}
+          <section className="panel" aria-label="Parameter table" aria-live="polite">
+            <h2>Projected parameters</h2>
+            <p className="hint">
+              Baseline → year {year}, untreated vs treated, with best–worst Monte
+              Carlo range (seed {res?.seed}).
+            </p>
+            {res && <ParameterTable res={res} year={year} contributorLabels={contributorLabels} />}
+          </section>
+        </div>
+      )}
 
       <footer className="app">
-        Engine v{ENGINE_VERSION} · schema v{contract.schemaVersion} · Monte
-        Carlo runs entirely in your browser · no data leaves this page.
+        Engine v{ENGINE_VERSION} · Monte Carlo runs in your browser · meshes:
+        heart (procedural, MIT) · brain (Mindboggle-101, CC BY 4.0). No data
+        leaves this page.
       </footer>
     </div>
   );
 }
 
-function OrganSwitch({
-  organ,
-  onChange,
-}: {
-  organ: OrganId;
-  onChange: (o: OrganId) => void;
-}) {
+function Attributions() {
   return (
-    <div className="organ-switch" role="group" aria-label="Select organ">
-      {ORGANS.map((o) => (
-        <button
-          key={o.id}
-          aria-pressed={organ === o.id}
-          onClick={() => onChange(o.id)}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div className="popover" role="region" aria-label="Asset attributions">
+      <ul>
+        <li>
+          <strong>Heart mesh:</strong> procedural (MIT), from cor-heart-studio.
+          No third-party anatomical data.
+        </li>
+        <li>
+          <strong>Brain mesh:</strong> Mindboggle-101 (MMRR-21-5),{" "}
+          <strong>CC BY 4.0</strong>. Klein &amp; Tourville 2012,
+          DOI 10.3389/fnins.2012.00171.
+        </li>
+        <li>No real patient DICOM is shipped. See docs/attributions.md.</li>
+      </ul>
     </div>
   );
 }
@@ -182,6 +237,7 @@ function ToggleGroup({
   title,
   buttons,
   activeIds,
+  suggested,
   openInfo,
   onToggle,
   onInfo,
@@ -189,6 +245,7 @@ function ToggleGroup({
   title: string;
   buttons: ButtonView[];
   activeIds: string[];
+  suggested: string[];
   openInfo: string | null;
   onToggle: (id: string, disabled: boolean) => void;
   onInfo: (id: string) => void;
@@ -199,25 +256,23 @@ function ToggleGroup({
       {buttons.map((b) => {
         const disabled = !b.sourced;
         const on = activeIds.includes(b.id);
+        const isSuggested = suggested.includes(b.id);
         return (
           <div key={b.id}>
-            <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+            <div className="toggle-row">
               <button
-                className="toggle"
+                className={`toggle${isSuggested ? " suggested" : ""}`}
                 aria-pressed={on}
+                aria-describedby={isSuggested ? `sug-${b.id}` : undefined}
                 disabled={disabled}
                 title={b.disabledReason ?? ""}
                 onClick={() => onToggle(b.id, disabled)}
               >
                 <span className="left">
                   <span className="name">{b.label}</span>
-                  <span className="meta">
-                    {on ? "on" : disabled ? b.disabledReason : "off"}
-                  </span>
+                  <span className="meta">{on ? "on" : disabled ? b.disabledReason : "off"}</span>
                 </span>
-                <span className={`badge ${b.evidenceGrade}`}>
-                  grade {b.evidenceGrade}
-                </span>
+                <span className={`badge ${b.evidenceGrade}`}>grade {b.evidenceGrade}</span>
               </button>
               <button
                 className="info-btn"
@@ -228,6 +283,11 @@ function ToggleGroup({
                 ⓘ
               </button>
             </div>
+            {isSuggested && (
+              <span id={`sug-${b.id}`} className="visually-hidden">
+                suggested intervention
+              </span>
+            )}
             {openInfo === b.id && (
               <div className="popover" role="region" aria-label={`Evidence for ${b.label}`}>
                 {b.citations.length === 0 && <div>No modeled effect for this organ.</div>}
@@ -237,8 +297,7 @@ function ToggleGroup({
                       <span className="cite">{c.parameterId}</span> —{" "}
                       {c.verified ? (
                         <>
-                          grade {c.evidenceGrade}. {c.text}{" "}
-                          <em>Population: {c.population}.</em>
+                          grade {c.evidenceGrade}. {c.text} <em>Population: {c.population}.</em>
                         </>
                       ) : (
                         <span className="unverified">
@@ -255,97 +314,4 @@ function ToggleGroup({
       })}
     </>
   );
-}
-
-function contributorsFor(contract: Contract, parameterId: string): string[] {
-  // An intervention contributed to a parameter if it has a VERIFIED citation
-  // for that parameter in provenance.
-  const ids = contract.provenance.citations
-    .filter((c) => c.parameterId === parameterId && c.verified)
-    .map((c) => c.interventionId);
-  const applied = new Set(contract.appliedInterventions.map((a) => a.id));
-  const labelOf = new Map(contract.appliedInterventions.map((a) => [a.id, a.label]));
-  return [...new Set(ids)].filter((id) => applied.has(id)).map((id) => labelOf.get(id) ?? id);
-}
-
-function ParameterRow({
-  p,
-  label,
-  contributors,
-}: {
-  p: Contract["parameters"][number];
-  label: string;
-  contributors: string[];
-}) {
-  const changed = Math.abs(p.value - p.baseline) > 1e-9;
-  const dirBetter =
-    (p.direction === "higher-better" && p.value > p.baseline) ||
-    (p.direction === "higher-worse" && p.value < p.baseline);
-  const deltaClass = !changed ? "none" : dirBetter ? "good" : "bad";
-  const deltaPct = p.baseline !== 0 ? ((p.value - p.baseline) / p.baseline) * 100 : 0;
-
-  // Bar scale spans the union of baseline and MC range with small padding.
-  const lo = Math.min(p.baseline, p.low, p.value);
-  const hi = Math.max(p.baseline, p.high, p.value);
-  const pad = (hi - lo) * 0.08 || Math.max(Math.abs(hi) * 0.05, 1);
-  const min = lo - pad;
-  const max = hi + pad;
-  const span = max - min || 1;
-  const pos = (v: number) => `${((v - min) / span) * 100}%`;
-  const width = `${((p.high - p.low) / span) * 100}%`;
-
-  return (
-    <div className="param">
-      <div className="top">
-        <span className="pname">{label}</span>
-        <span className="pval">
-          {fmt(p.baseline)} → <strong>{fmt(p.value)}</strong> {p.unit}{" "}
-          <span className={`delta ${deltaClass}`}>
-            ({changed ? `${deltaPct > 0 ? "+" : ""}${deltaPct.toFixed(1)}%` : "no change"})
-          </span>
-        </span>
-      </div>
-      <div
-        className="bar"
-        role="img"
-        aria-label={`${label}: baseline ${fmt(p.baseline)} ${p.unit}, likely ${fmt(
-          p.value,
-        )} ${p.unit}, range ${fmt(p.low)} to ${fmt(p.high)} ${p.unit}`}
-      >
-        <span className="range" style={{ left: pos(p.low), width }} />
-        <span className="baseline" style={{ left: pos(p.baseline) }} />
-        <span className="likely" style={{ left: pos(p.value) }} />
-      </div>
-      <div className="scale">
-        <span>{fmt(p.low)}</span>
-        <span>{fmt(p.high)}</span>
-      </div>
-      <div className="contrib">
-        {p.clamped && <span style={{ color: "var(--warn)" }}>clamped to bounds · </span>}
-        {contributors.length > 0
-          ? `Contributors: ${contributors.join(", ")}`
-          : "No sourced contributors for this parameter."}
-      </div>
-    </div>
-  );
-}
-
-function Warnings({ contract }: { contract: Contract }) {
-  if (contract.warnings.length === 0) return null;
-  return (
-    <div className="warnings" role="status">
-      <h3>Engine warnings ({contract.warnings.length})</h3>
-      <ul>
-        {contract.warnings.map((w, i) => (
-          <li key={i}>{w}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function fmt(n: number): string {
-  if (Math.abs(n) >= 100) return n.toFixed(0);
-  if (Math.abs(n) >= 10) return n.toFixed(1);
-  return n.toFixed(2);
 }
