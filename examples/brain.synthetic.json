@@ -1,0 +1,6 @@
+{
+  "_comment": "SYNTHETIC example baseline. Not real patient data. Illustrative cohort-typical values for an older adult with mild age-related change.",
+  "hippocampal_volume": 6.5,
+  "cortical_thickness": 2.45,
+  "ventricular_volume": 34
+}
