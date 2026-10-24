@@ -21,6 +21,30 @@ export { ENGINE_VERSION } from "./contract/build.js";
 export { getOrganModel, isOrganId } from "./organ/index.js";
 export { listInterventions } from "./catalog/index.js";
 
+// Time-trajectory API (0-N year untreated vs treated outlook).
+export {
+  trajectory,
+  rampFraction,
+  DEFAULT_HORIZON_YEARS,
+  EFFECT_RAMP_FOLLOWUP_YEARS,
+} from "./trajectory/trajectory.js";
+export type {
+  TrajectoryResult,
+  TrajectoryOptions,
+  ParameterTrajectory,
+  TrajectoryPoint,
+  Scenario,
+} from "./trajectory/trajectory.js";
+export {
+  getNaturalCourse,
+  getNaturalCourseRate,
+} from "./trajectory/naturalCourse.js";
+export type {
+  NaturalCourse,
+  NaturalCourseRate,
+  NaturalCourseModel,
+} from "./trajectory/naturalCourse.js";
+
 export interface SimulateInput {
   organ: OrganId;
   /** parameterId -> baseline value, in the parameter's unit. */
