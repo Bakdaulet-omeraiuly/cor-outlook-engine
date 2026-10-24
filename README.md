@@ -8,6 +8,11 @@ a versioned JSON contract for a separate 3D viewer (COR Studio).
 No UI. No network. No third-party simulation framework. One runtime dependency
 (`zod`, for contract validation).
 
+**Demo:** https://cor-outlook-web.vercel.app — an interactive Next.js page
+(source in [`web/`](web/)) that toggles interventions against a **synthetic**
+example baseline and shows the modeled cohort-level ranges. The Monte Carlo runs
+entirely in the browser; no data leaves the page.
+
 > ⚠️ **Cohort-level decision support, not an individual prediction.**
 > Every output is derived from published trial/meta-analysis data at the cohort
 > level and carries a notice to that effect. It is **not** a forecast for any
