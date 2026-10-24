@@ -8,10 +8,26 @@ a versioned JSON contract for a separate 3D viewer (COR Studio).
 No UI. No network. No third-party simulation framework. One runtime dependency
 (`zod`, for contract validation).
 
-**Demo:** https://cor-outlook-web.vercel.app — an interactive Next.js page
-(source in [`web/`](web/)) that toggles interventions against a **synthetic**
-example baseline and shows the modeled cohort-level ranges. The Monte Carlo runs
-entirely in the browser; no data leaves the page.
+**Demo (3D):** https://cor-outlook-web.vercel.app — an interactive Next.js +
+react-three-fiber page (source in [`web/`](web/)). A clinician toggles
+drug/lifestyle interventions and sees, in 3D, how an organ (Heart or Brain)
+looks in **5 years with vs without** treatment, as either a side-by-side view
+(untreated left, treated right) or a ghost overlay (treated solid, untreated
+translucent). A year slider (0–5) scrubs the trajectory; a parameter table shows
+baseline → year-5 for both scenarios with best/worst ranges, contributors, and
+engine warnings. Baseline is a **synthetic** example. The Monte Carlo runs
+entirely in the browser; no data leaves the page. 3D meshes are open and
+licence-cleared (see [`docs/attributions.md`](docs/attributions.md)); if WebGL
+is unavailable the viewer shows a fallback and the table still works.
+
+The engine also exposes a cited **time-trajectory API** (`trajectory()`): a 0–N
+year untreated (natural course) vs treated series per parameter with a seeded
+likely/best/worst band. Natural-course rates are cited (brain ageing: Barnes
+2009, Fjell 2009, de Leon 1989); the untreated heart is held flat ("no
+progression modelled") because no single defensible cohort rate exists.
+Intervention effects are applied with a documented linear **ramp** to their
+trial follow-up and labelled "modelled time course". See
+[`docs/evidence.md`](docs/evidence.md).
 
 > ⚠️ **Cohort-level decision support, not an individual prediction.**
 > Every output is derived from published trial/meta-analysis data at the cohort

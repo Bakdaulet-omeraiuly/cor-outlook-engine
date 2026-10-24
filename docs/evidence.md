@@ -67,3 +67,52 @@ diminishing returns, but with no extra synergy/antagonism term). Add entries to
   (diminishing returns, order independence). It is not itself a trial-derived
   interaction and should be read as a structured aggregation, not a measured
   combined-therapy effect size.
+
+## Time dimension (0–5 year trajectory)
+
+The 3D viewer compares an **untreated** (natural-course) trajectory with a
+**treated** one over 0–5 years. Two kinds of number feed this, both cohort-level.
+
+### Natural-course (untreated) rates — cited
+
+Applied as a relative change per year: `value(t) = value0 · (1 + r)^t`.
+
+| Organ | Parameter | r (per year) | Range (per year) | Source |
+|-------|-----------|--------------|------------------|--------|
+| Brain | Hippocampal volume | −1.41% | −0.52% … −2.3% (95% CI of mean) | Barnes J, et al. *Neurobiol Aging.* 2009;30:1711–1723. DOI: 10.1016/j.neurobiolaging.2008.01.010 (control arm = typical ageing). |
+| Brain | Mean cortical thickness | −0.5% | (no spread reported) | Fjell AM, et al. *J Neurosci.* 2009;29:15223–15231. DOI: 10.1523/JNEUROSCI.3252-09.2009 (temporal/prefrontal; applied to mean cortex). |
+| Brain | Lateral ventricular volume | +2.0% | (no spread reported) | de Leon MJ, et al. *AJR Am J Roentgenol.* 1989;152:1257–1262. DOI: 10.2214/ajr.152.6.1257 (CT, normal ageing). |
+| Heart | LVMI, LV wall thickness, EF, LAVI | **0% — no progression modelled** | — | No single defensible cohort rate for untreated structural progression over 0–5 y; held flat rather than invented. |
+
+### Treated trajectory — modelling assumption (ramp)
+
+Intervention effects in `src/effects` are reported as a single treated-vs-control
+value at trial follow-up; the trials do not give a per-year course. The engine
+therefore applies each effect with a **documented linear ramp**: the relative
+effect grows linearly from 0 at year 0 to its full published value at the
+follow-up time (`EFFECT_RAMP_FOLLOWUP_YEARS = 5`), then is held. Every treated
+trajectory that uses this is flagged `modelledTimeCourse: true` and labelled
+**"modelled time course"** in the UI. No measured time course is invented.
+
+The treated multiplier at year *t* is the natural-course multiplier × the
+product of each verified intervention's ramped `(1 + delta·rampFraction(t))`,
+combined multiplicatively (diminishing returns), capped at |relative change| ≤
+0.6, then clamped to physiological bounds. The likely value is from the means;
+the best/worst band is a seeded Monte Carlo over the effect CIs and the
+natural-course spread (deterministic, order-independent).
+
+### Unverified effects — excluded (unchanged from the one-shot model)
+
+The same effects remain `verified: false` and are excluded from the trajectory:
+statin→LVMI, sodium reduction→LVMI, aerobic exercise→LVMI (heart), smoking
+cessation→LVMI (heart), ACEi/ARB→LV wall thickness; and for the brain:
+BP control→structural parameter, Mediterranean diet→cortical thickness,
+sleep→ventricular volume, smoking cessation→cortical thickness. See the table
+above and each `src/effects/**` file for the per-effect rationale.
+
+### Aortic stenosis
+
+No intervention toggles. The viewer shows an info card: no proven medication
+slows AS progression; treatment is AVR/TAVI. Otto CM, Nishimura RA, Bonow RO,
+et al. 2020 ACC/AHA Guideline. *Circulation.* 2021;143:e72–e227. DOI:
+10.1161/CIR.0000000000000923.
