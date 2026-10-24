@@ -1,9 +1,11 @@
 import type { OrganId } from "./organ/types.js";
 import { getOrganModel, isOrganId } from "./organ/index.js";
 import { listInterventions as catalogList } from "./catalog/index.js";
+import { getEffects } from "./effects/index.js";
 import { combine } from "./combine/combine.js";
 import { buildContract } from "./contract/build.js";
 import type { Contract } from "./contract/schema.js";
+import type { InterventionEffects } from "./catalog/types.js";
 
 export type { OrganId, OrganModel, OrganParameter, Direction } from "./organ/types.js";
 export type {
@@ -53,6 +55,21 @@ export function simulate(input: SimulateInput): Contract {
 /** Re-export for convenience alongside the catalog list. */
 export function getModel(organ: OrganId) {
   return getOrganModel(organ);
+}
+
+/**
+ * Read-only lookup of an intervention's effects for an organ, including
+ * citations, population, evidence grade, and verified/unverified status.
+ * Returns undefined if the intervention has no entry for that organ.
+ *
+ * Exposed so UIs can render provenance (ⓘ popovers) and detect whether an
+ * intervention has any sourced (verified) effect for the selected organ.
+ */
+export function getInterventionEffects(
+  organ: OrganId,
+  interventionId: string,
+): InterventionEffects | undefined {
+  return getEffects(organ, interventionId);
 }
 
 export const catalog = { listInterventions: catalogList };
