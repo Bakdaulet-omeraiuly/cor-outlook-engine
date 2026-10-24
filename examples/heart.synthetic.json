@@ -1,0 +1,7 @@
+{
+  "_comment": "SYNTHETIC example baseline. Not real patient data. Values are illustrative cohort-typical numbers for a hypertensive adult with LV hypertrophy and reduced EF.",
+  "lvmi": 135,
+  "lv_wall_thickness": 13,
+  "ef": 38,
+  "lavi": 40
+}
