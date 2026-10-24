@@ -73,7 +73,7 @@ function Rig({ children, label }: { children: React.ReactNode; label: string }) 
 
 export function Fallback({ reason }: { reason: string }) {
   return (
-    <div className="webgl-fallback" role="status">
+    <div className="webgl-fallback" role="status" data-testid="webgl-fallback">
       <strong>3D view unavailable</strong>
       <p>{reason}</p>
       <p>The parameter table on the right still shows the full outlook.</p>
@@ -103,7 +103,7 @@ export function Viewer3D({
 
   if (viewMode === "side-by-side") {
     return (
-      <div className="viewer-split">
+      <div className="viewer-split" data-testid="viewer-side-by-side">
         <figure>
           <figcaption>Untreated (natural course)</figcaption>
           <Rig label={`${organ} untreated at year ${year}`}>
@@ -122,7 +122,7 @@ export function Viewer3D({
 
   // ghost overlay: treated solid, untreated translucent, in one scene.
   return (
-    <div className="viewer-single">
+    <div className="viewer-single" data-testid="viewer-ghost">
       <figure>
         <figcaption>Ghost overlay — treated solid, untreated translucent</figcaption>
         <Rig label={`${organ} ghost overlay at year ${year}`}>
