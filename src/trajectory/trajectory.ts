@@ -191,11 +191,16 @@ export function trajectory(opts: TrajectoryOptions): TrajectoryResult {
     // Natural-course multiplier at year t for a given per-year rate.
     const ncMul = (rate: number, t: number) => Math.pow(1 + rate, t);
 
+    // Per-contribution ramp fraction at year t, using each effect's own
+    // follow-up (falling back to the global default when a source didn't
+    // specify one). Linear 0->1 by follow-up, then held.
+    const contribFrac = (c: Contribution, t: number) =>
+      rampFraction(t, c.effect.followUpYears ?? EFFECT_RAMP_FOLLOWUP_YEARS);
+
     // Treated multiplier at year t: natural course * ramped intervention product.
     const treatedMeanMul = (t: number) => {
-      const frac = rampFraction(t, EFFECT_RAMP_FOLLOWUP_YEARS);
       let m = ncMul(ncRate, t);
-      for (const c of contribs) m *= 1 + c.effect.dist.deltaMean * frac;
+      for (const c of contribs) m *= 1 + c.effect.dist.deltaMean * contribFrac(c, t);
       return capMul(m, maxRel).m;
     };
 
@@ -213,7 +218,6 @@ export function trajectory(opts: TrajectoryOptions): TrajectoryResult {
       const tSamples = new Array<number>(iterations);
       let uClamp = uCentral.clamped;
       let tClamp = tCentral.clamped;
-      const frac = rampFraction(t, EFFECT_RAMP_FOLLOWUP_YEARS);
 
       for (let i = 0; i < iterations; i++) {
         // Natural-course rate sampled uniformly across its reported spread.
@@ -223,12 +227,13 @@ export function trajectory(opts: TrajectoryOptions): TrajectoryResult {
         if (u.clamped) uClamp = true;
         uSamples[i] = u.value;
 
-        // Treated: same natural course sample * sampled intervention deltas (ramped).
+        // Treated: same natural course sample * sampled intervention deltas,
+        // each ramped by its own follow-up.
         let m = uMulRaw;
         for (const c of contribs) {
           const sd = sdFrom95CI(c.effect.dist.delta95[0], c.effect.dist.delta95[1]);
           const d = normal(rng, c.effect.dist.deltaMean, sd);
-          m *= 1 + d * frac;
+          m *= 1 + d * contribFrac(c, t);
         }
         const capped = capMul(m, maxRel);
         const tv = clampToBounds(param, base * capped.m);

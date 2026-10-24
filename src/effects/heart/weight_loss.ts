@@ -32,6 +32,8 @@ export const weightLossEffects: InterventionEffects = {
       evidenceGrade: "B",
       population: "Overweight hypertensive adults (RCT)",
       verified: true,
+      followUpYears: 1,
+      durability: "held",
     },
   ],
 };

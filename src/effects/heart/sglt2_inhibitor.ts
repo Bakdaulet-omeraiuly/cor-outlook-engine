@@ -34,6 +34,9 @@ export const sglt2InhibitorEffects: InterventionEffects = {
       evidenceGrade: "A",
       population: "Nondiabetic adults with HFrEF",
       verified: true,
+      // EMPA-TROPISM measured CMR LV mass at 6 months.
+      followUpYears: 0.5,
+      durability: "held",
     },
     {
       parameterId: "ef",
@@ -48,6 +51,8 @@ export const sglt2InhibitorEffects: InterventionEffects = {
       evidenceGrade: "A",
       population: "Nondiabetic adults with HFrEF",
       verified: true,
+      followUpYears: 0.5,
+      durability: "held",
       note: "EF gain is HFrEF-specific; apply to reduced-EF baselines.",
     },
   ],

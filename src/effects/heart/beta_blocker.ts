@@ -35,6 +35,8 @@ export const betaBlockerEffects: InterventionEffects = {
       evidenceGrade: "A",
       population: "Adults with essential hypertension (meta-analysis)",
       verified: true,
+      followUpYears: 1,
+      durability: "held",
     },
     {
       parameterId: "ef",
@@ -49,6 +51,8 @@ export const betaBlockerEffects: InterventionEffects = {
       evidenceGrade: "A",
       population: "HFrEF adults (reduced ejection fraction)",
       verified: true,
+      followUpYears: 1,
+      durability: "held",
       note:
         "EF improvement is specific to HFrEF cohorts; relative delta derived " +
         "from ~+6 absolute EF points on a ~35% baseline. Apply only to reduced-EF baselines.",

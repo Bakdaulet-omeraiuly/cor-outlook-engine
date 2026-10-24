@@ -101,8 +101,10 @@ describe("ramp assumption and modelled-time-course flag", () => {
     const lvmi = paramOf(res, "lvmi");
     // heart untreated flat => treated y5 = 135 * (1 + (-0.11)*1) = 120.15
     expect(lvmi.treated[5]!.value).toBeCloseTo(135 * 0.89, 4);
-    // midpoint year (2.5) isn't sampled; year 2 uses frac 2/5 = 0.4
-    expect(lvmi.treated[2]!.value).toBeCloseTo(135 * (1 - 0.11 * 0.4), 4);
+    // ACEi follow-up is 1 y, so by year 2 the full -11% is reached and held.
+    expect(lvmi.treated[2]!.value).toBeCloseTo(135 * 0.89, 4);
+    // at year 0 there is no effect yet (ramp starts at 0).
+    expect(lvmi.treated[0]!.value).toBeCloseTo(135, 6);
   });
 });
 
@@ -190,5 +192,44 @@ describe("ranges and combination semantics", () => {
 
   it("throws on unknown intervention", () => {
     expect(() => trajectory({ organ: "heart", baseline: heartBaseline, interventions: ["nope"] })).toThrow(/Unknown intervention/);
+  });
+});
+
+describe("per-effect follow-up ramp", () => {
+  it("SGLT2 (0.5 y follow-up) reaches full effect by year 1, held after", () => {
+    const res = trajectory({ organ: "heart", baseline: heartBaseline, interventions: ["sglt2_inhibitor"] });
+    const lvmi = paramOf(res, "lvmi");
+    // full effect -13% reached from year 1 onward (follow-up 0.5y, ramp holds)
+    expect(lvmi.treated[1]!.value).toBeCloseTo(135 * 0.87, 4);
+    expect(lvmi.treated[5]!.value).toBeCloseTo(135 * 0.87, 4);
+  });
+
+  it("ACEi (1 y follow-up) is at half effect at ~year 0.5 equivalent (year 1 full)", () => {
+    const res = trajectory({ organ: "heart", baseline: heartBaseline, interventions: ["ace_inhibitor_arb"] });
+    const lvmi = paramOf(res, "lvmi");
+    // at year 1 the 1-year-follow-up effect is full (-11%)
+    expect(lvmi.treated[1]!.value).toBeCloseTo(135 * 0.89, 4);
+  });
+
+  it("brain exercise (Erickson, 1 y follow-up) full hippocampal effect from year 1", () => {
+    const res = trajectory({ organ: "brain", baseline: brainBaseline, interventions: ["aerobic_exercise"] });
+    const hip = paramOf(res, "hippocampal_volume");
+    // treated y1 = untreated ageing y1 * (1 + 0.02)
+    const u1 = hip.untreated[1]!.value;
+    expect(hip.treated[1]!.value).toBeCloseTo(u1 * 1.02, 5);
+  });
+});
+
+describe("effect definition — Erickson treated-vs-control difference", () => {
+  it("the +2% exercise effect is applied on top of the ageing decline (difference, not absolute)", () => {
+    // Untreated ageing hippocampus declines (-1.41%/y). The exercise effect is
+    // modelled as the treated-vs-control relative difference (+2%), so the
+    // treated arm = ageing decline * (1 + 0.02) — NOT a flat +2% absolute.
+    const res = trajectory({ organ: "brain", baseline: brainBaseline, interventions: ["aerobic_exercise"] });
+    const hip = paramOf(res, "hippocampal_volume");
+    const u5 = hip.untreated[5]!.value;
+    expect(hip.treated[5]!.value).toBeCloseTo(u5 * 1.02, 5);
+    // treated is still above untreated but may be below baseline (decline not fully reversed)
+    expect(hip.treated[5]!.value).toBeGreaterThan(u5);
   });
 });

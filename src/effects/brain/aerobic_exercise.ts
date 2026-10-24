@@ -27,6 +27,10 @@ export const aerobicExerciseBrainEffects: InterventionEffects = {
       evidenceGrade: "B",
       population: "Community-dwelling older adults (RCT)",
       verified: true,
+      // Erickson 2011 measured the +2% hippocampal change over a 1-year
+      // training programme; held beyond 1 y is an extrapolation.
+      followUpYears: 1,
+      durability: "held",
     },
   ],
 };

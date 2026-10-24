@@ -30,6 +30,20 @@ export interface ParameterEffect {
   population: string;
   /** false => excluded from default computation and surfaced as a warning. */
   verified: boolean;
+  /**
+   * Follow-up time (years) at which the source measured this full effect.
+   * The treated time course ramps linearly from 0 at year 0 to the full
+   * effect at followUpYears, then is held. Taken from the effect's own source.
+   */
+  followUpYears?: number;
+  /**
+   * What happens after followUpYears:
+   *  - "held": the effect is assumed to persist (an extrapolation beyond the
+   *    trial — must be labelled "modelled time course" in the UI);
+   *  - "unknown": no basis to extrapolate; callers should treat beyond-trial
+   *    years with caution.
+   */
+  durability?: "held" | "unknown";
   /** true => value is illustrative, not a directly measured point estimate. */
   illustrative?: boolean;
   /** TODO / caveat, especially for unverified effects. */

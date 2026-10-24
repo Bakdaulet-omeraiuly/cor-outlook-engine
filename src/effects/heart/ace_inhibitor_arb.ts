@@ -30,6 +30,10 @@ export const aceInhibitorArbEffects: InterventionEffects = {
       evidenceGrade: "A",
       population: "Adults with essential hypertension (meta-analysis)",
       verified: true,
+      // Klingbeil 2003 pooled trials of varying length; representative mean
+      // treatment duration ~1 year. Held beyond that is an extrapolation.
+      followUpYears: 1,
+      durability: "held",
     },
     {
       parameterId: "lv_wall_thickness",
